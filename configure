@@ -36,7 +36,7 @@ PLATFORM=;
 PLATFORM_VERSION=;
 PREFIX="/usr/local";
 MANDIR=;
-PROTOCOLS="mext series 40h";
+PROTOCOLS="mext series 40h chronome";
 LIBUDEV_VERSION=;
 
 LM_LDFLAGS="";
