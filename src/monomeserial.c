@@ -126,6 +126,14 @@ static int osc_intensity_handler(const char *path, const char *types,
 	return monome_led_intensity(monome, intensity);
 }
 
+// Owen added this for Chronome color support
+static int osc_led_color_handler(const char *path, const char *types,
+                                 lo_arg **argv, int argc,
+                                 lo_message data, void *user_data) {
+    
+    return 0;
+}
+
 static void register_osc_methods(char *prefix, monome_t *monome) {
 	lo_server_thread srv = state.server;
 	char *cmd_buf;
@@ -158,6 +166,11 @@ static void register_osc_methods(char *prefix, monome_t *monome) {
 	asprintf(&cmd_buf, "/%s/intensity", prefix);
 	lo_server_add_method(srv, cmd_buf, "", osc_intensity_handler, monome);
 	lo_server_add_method(srv, cmd_buf, "i", osc_intensity_handler, monome);
+	m_free(cmd_buf);
+    
+    // Owen added for Chronome color support
+	asprintf(&cmd_buf, "/%s/color", prefix);
+	lo_server_add_method(srv, cmd_buf, "iiiii", osc_led_color_handler, monome);
 	m_free(cmd_buf);
 }
 
@@ -192,6 +205,11 @@ static void unregister_osc_methods(char *prefix) {
 	asprintf(&cmd_buf, "/%s/frame", prefix);
 	lo_server_del_method(srv, cmd_buf, "iiiiiiii");
 	lo_server_del_method(srv, cmd_buf, "iiiiiiiiii");
+	m_free(cmd_buf);
+    
+	// Owen added for Chronome color support
+	asprintf(&cmd_buf, "/%s/color", prefix);
+	lo_server_del_method(srv, cmd_buf, "iiiii");
 	m_free(cmd_buf);
 }
 

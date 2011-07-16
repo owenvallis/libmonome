@@ -33,9 +33,11 @@ typedef enum {
 	MONOME_ENCODER_KEY_UP   = 0x03,
 	MONOME_ENCODER_KEY_DOWN = 0x04,
 	MONOME_TILT             = 0x05,
-
+    // owen added for Chronome pressure data
+    MONOME_PRESSURE         = 0x06,
+    
 	/* update this if you add event types */
-	MONOME_EVENT_MAX        = 0x06
+	MONOME_EVENT_MAX        = 0x07
 } monome_event_type_t;
 
 /* modes (argument to monome_mode) */
@@ -83,6 +85,13 @@ struct monome_event {
 			int y;
 			int z;
 		} tilt;
+        
+        // owen added for Chronome pressure data
+        struct {
+            unsigned int x;
+			unsigned int y;
+			unsigned int value;
+		} pressure;
 	};
 };
 
@@ -134,6 +143,10 @@ int monome_led_level_row(monome_t *monome, unsigned int x_off,
                          unsigned int y, size_t count, const uint8_t *data);
 int monome_led_level_col(monome_t *monome, unsigned int x, unsigned int y_off,
                          size_t count, const uint8_t *data);
+    
+/* added by owen for chronome */
+int monome_led_color(monome_t *monome, unsigned int x, unsigned int y,
+                        unsigned int red, unsigned int green, unsigned int blue);
 
 /**
  * led ring commands

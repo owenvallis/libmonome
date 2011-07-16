@@ -25,6 +25,9 @@ static monome_devmap_t mapping[] = {
 
 	{"m40h%d",  "40h",    {8, 8},   "monome 40h", NO_QUIRKS},
 	{"a40h-%d", "40h",    {8, 8},   "arduinome" , QUIRK_57600_BAUD},
+    
+	// Owen added for Chronome support
+	{"chr-%d", "chronome",    {8, 8},   "chronome" , QUIRK_57600_BAUD},
 
 	/* determine device dimensions in initialization */
 	{"m%d",     "mext",   {0, 0},   "monome i2c", NO_QUIRKS},
