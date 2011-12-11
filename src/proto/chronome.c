@@ -132,7 +132,9 @@ static int proto_chronome_led_map(monome_t *monome, uint_t x_off, uint_t y_off,
 static int proto_chronome_led_color(monome_t *monome, uint_t x, uint_t y,
 								    uint_t r, uint_t g, uint_t b)
 {
-	
+
+    ROTATE_COORDS(monome, x, y);
+    
 	uint8_t buf[5];
 	
 	buf[0] = 0x80 | PROTO_CHRONOME_LED_COLOR;
@@ -174,6 +176,9 @@ static int proto_chronome_next_event(monome_t *monome, monome_event_t *e) {
             
             UNROTATE_COORDS(monome, e->pressure.x, e->pressure.y);
             
+            // ****
+            // lets also send out button Down/Up as we cross over zero
+            // ****
             if(chronomePreviousValue[e->pressure.x][e->pressure.y] == 0 && e->pressure.value > 0) {
                 e->event_type = MONOME_BUTTON_DOWN;
                 e->grid.x = e->pressure.x;
