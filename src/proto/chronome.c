@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
+#include <time.h>
 
 #include <monome.h>
 #include "internal.h"
@@ -31,12 +33,20 @@
 
 #include "chronome.h"
 
+
 /**
  * private
  */
 
-static int monome_write(monome_t *monome, const uint8_t *buf,
-						ssize_t bufsize) {
+uint8_t button_current[8][8];
+uint8_t button_last[8][8];
+uint8_t button_state[8][8];
+
+clock_t button_debounce_count[8][8];
+
+clock_t kDebounceDelay;
+
+static int monome_write(monome_t *monome, const uint8_t *buf, ssize_t bufsize) {
     if( monome_platform_write(monome, buf, bufsize) == bufsize )
 		return 0;
 	
@@ -46,6 +56,51 @@ static int monome_write(monome_t *monome, const uint8_t *buf,
 /**
  * public led functions
  */
+static int proto_chronome_led_col_row(monome_t *monome, proto_chronome_message_t mode, uint_t address, const uint8_t *data) {
+	uint8_t buf[2];
+	uint_t xaddress = address;
+    
+    ROTATE_COORDS(monome, xaddress, address);
+    
+    switch( mode ) {
+        case PROTO_CHRONOME_LED_ROW:
+            address = xaddress;
+               
+            if( ROTSPEC(monome).flags & ROW_REVBITS )
+                buf[1] = REVERSE_BYTE(*data);
+            else
+                buf[1] = *data;
+            
+            fprintf(stderr, "row %d %d %d\n", PROTO_CHRONOME_LED_ROW, buf[1], address);
+
+                        
+            break;
+            
+        case PROTO_CHRONOME_LED_COL:
+            fprintf(stderr, "col %d\n", PROTO_CHRONOME_LED_COL);
+
+            if( ROTSPEC(monome).flags & COL_REVBITS )
+                buf[1] = REVERSE_BYTE(*data);
+            else
+                buf[1] = *data;
+            
+            break;
+            
+        default:
+            return -1;
+	}
+    
+    // check to see if this works
+    if( ROTSPEC(monome).flags & ROW_COL_SWAP )
+    {
+        mode = !(mode - PROTO_CHRONOME_LED_ROW) + PROTO_CHRONOME_LED_ROW;
+        fprintf(stderr, "mode post ROTSPEC value %d\n", mode);
+    }
+    
+	buf[0] = 0x80 | ((address & 0x7 ) << 4) | mode;
+    
+    return monome_write(monome, buf, sizeof(buf));
+}
 
 static int proto_chronome_led_all(monome_t *monome, uint_t status) {
     
@@ -85,48 +140,35 @@ static int proto_chronome_led_set(monome_t *monome, uint_t x, uint_t y, uint_t o
 
 static int proto_chronome_led_col(monome_t *monome, uint_t x, uint_t y_off,
                              size_t count, const uint8_t *data) {
-    int ret = 0;
-    uint8_t state;
-    
-    /*
-    uint8_t rowStates;
-    
-    if( ROTSPEC(monome).flags & COL_REVBITS )
-        rowStates = REVERSE_BYTE(*data);
-    else
-        rowStates = *data;
-    */
-    for(int y = 0; y < 8; y++) {
-        state = (*data >> y) & 0x01;
-        ret += proto_chronome_led_set(monome, x, y, state);
-    }
-    
-    return ret;
+	return proto_chronome_led_col_row(monome, PROTO_CHRONOME_LED_COL, x, data);
 }
 
 static int proto_chronome_led_row(monome_t *monome, uint_t x_off, uint_t y,
                              size_t count, const uint8_t *data) {
-    int ret = 0;
-    uint8_t state;
-    /*
-     uint8_t rowStates;
-     
-     if( ROTSPEC(monome).flags & ROW_REVBITS )
-     rowStates = REVERSE_BYTE(*data);
-     else
-     rowStates = *data;
-     */
-    for(int x = 0; x < 8; x++) {
-        state = (*data >> x) & 0x01;
-        ret += proto_chronome_led_set(monome, x, y, state);
-    }
-    
-    return ret;
+	return proto_chronome_led_col_row(monome, PROTO_CHRONOME_LED_ROW, y, data);
 }
 
 static int proto_chronome_led_map(monome_t *monome, uint_t x_off, uint_t y_off,
                              const uint8_t *data) {
-    return 0;
+    uint8_t buf[8];
+	int ret = 0;
+	uint_t i;
+    
+	/* by treating data as a bigger integer, we can copy it in
+     one or two operations (instead of 8) */
+#ifdef __LP64__
+	*((uint64_t *) &buf[0]) = *((uint64_t *) data);
+#else
+	*((uint32_t *) &buf[0]) = *((uint32_t *) data);
+	*((uint32_t *) &buf[4]) = *(((uint32_t *) data) + 1);
+#endif
+    
+	ROTSPEC(monome).map_cb(monome, buf);
+    
+	for( i = 0; i < 8; i++ )
+		ret += proto_chronome_led_col_row(monome, PROTO_CHRONOME_LED_ROW, i, &buf[i]);
+    
+	return ret;
 }
 
 static int proto_chronome_led_color(monome_t *monome, uint_t x, uint_t y,
@@ -149,16 +191,17 @@ static int proto_chronome_led_color(monome_t *monome, uint_t x, uint_t y,
 
 static monome_led_functions_t proto_chronome_led_functions = {
 	.set        = proto_chronome_led_set,
-	.color      = proto_chronome_led_color,
 	.all        = proto_chronome_led_all,
     .map        = proto_chronome_led_map,
 	.row        = proto_chronome_led_row,
 	.col        = proto_chronome_led_col,
-    .intensity  = proto_chronome_intensity
+    .intensity  = proto_chronome_intensity,
+    .color      = proto_chronome_led_color
 };
 
 
 static int proto_chronome_next_event(monome_t *monome, monome_event_t *e) {
+        
 	uint8_t buf[3] = {0, 0, 0};
 	
 	if( monome_platform_read(monome, buf, sizeof(buf)) != sizeof(buf) )
@@ -175,27 +218,90 @@ static int proto_chronome_next_event(monome_t *monome, monome_event_t *e) {
 			e->pressure.value  = ((buf[1] & 0x03) << 8) | buf[2];
             
             UNROTATE_COORDS(monome, e->pressure.x, e->pressure.y);
-            
+           
             // ****
             // lets also send out button Down/Up as we cross over zero
             // ****
-            if(chronomePreviousValue[e->pressure.x][e->pressure.y] == 0 && e->pressure.value > 0) {
-                e->event_type = MONOME_BUTTON_DOWN;
-                e->grid.x = e->pressure.x;
-                e->grid.y = e->pressure.y;
+            
+            // set current button state
+            if(e->pressure.value > 0)
+            {
+                button_current[e->pressure.x][e->pressure.y] = 1;
             }
-            else if(chronomePreviousValue[e->pressure.x][e->pressure.y] > 0 && e->pressure.value == 0) {
-                e->event_type = MONOME_BUTTON_UP;
-                e->grid.x = e->pressure.x;
-                e->grid.y = e->pressure.y;
+            else if (e->pressure.value == 0)
+            {
+                button_current[e->pressure.x][e->pressure.y] = 0;  
             }
             
-            chronomePreviousValue[e->pressure.x][e->pressure.y] = e->pressure.value;
+
+            // lets debounce
+            
+            // if the current physical button state is different from the last physical button state
+            if(button_current[e->pressure.x][e->pressure.y] != button_last[e->pressure.x][e->pressure.y]) 
+            { 
+                //fprintf(stderr, "reset the debouncing timer %d\n", (int)clock());
+                button_debounce_count[e->pressure.x][e->pressure.y] = clock();                                                                         
+            }
+            
+            
+            if((clock() - button_debounce_count[e->pressure.x][e->pressure.y]) > kDebounceDelay)     
+            {                                                                        
+                // queue up a button state change event
+                // and toggle the buttons debounce state.
+                if ((button_current[e->pressure.x][e->pressure.y] == 1) && (button_state[e->pressure.x][e->pressure.y] != 1))
+                {    
+                    //fprintf(stderr, "press Down\n");    
+                    button_state[e->pressure.x][e->pressure.y] = 1;
+                    
+                    e->event_type = MONOME_BUTTON_DOWN;                                             
+                    e->grid.x = e->pressure.x;
+                    e->grid.y = e->pressure.y;
+                }
+                else if ((button_current[e->pressure.x][e->pressure.y] == 0) && (button_state[e->pressure.x][e->pressure.y] != 0))
+                {
+                    //fprintf(stderr, "press Up\n");
+                    button_state[e->pressure.x][e->pressure.y] = 0;
+                    
+                    e->event_type = MONOME_BUTTON_UP;
+                    e->grid.x = e->pressure.x;
+                    e->grid.y = e->pressure.y; 
+                }
+            } 
+            
+            // ** print for bounce timer debugging    
+            //int diff = (int)(clock() - button_debounce_count[e->pressure.x][e->pressure.y]);
+            //fprintf(stderr, "debouncing timer difference %d\n", diff);
+
+            
+            // set the last button state equal to the current button state
+            button_last[e->pressure.x][e->pressure.y] = button_current[e->pressure.x][e->pressure.y];
             
 			return 1;
 	}
 	
 	return 0;
+}
+
+static void initializeDebounceVariables() {
+    
+    for (int x = 0; x < 8; x++) {
+        for (int y = 0; y < 8; y++) {
+            
+            // button states
+            button_current[x][y] = 0;
+            button_last[x][y] = 0;
+            button_state[x][y] = 0;
+            
+            // clock values
+            button_debounce_count[x][y] = clock();
+        }
+    }
+    
+    // Used in button debouncing and should be equal to 25 milliseconds
+    // this needs to be scaled by .001 for some reason?? 
+    kDebounceDelay = .001 * (.025 * CLOCKS_PER_SEC);  
+    
+    //fprintf(stderr, "kDebounceDelay %d\n", (int)kDebounceDelay);
 }
 
 static int proto_chronome_open(monome_t *monome, const char *dev,
@@ -205,7 +311,9 @@ static int proto_chronome_open(monome_t *monome, const char *dev,
 	monome->cols   = m->dimensions.cols;
 	monome->serial = serial;
 	monome->friendly = m->friendly;
-	
+    
+    initializeDebounceVariables();
+    
 	return monome_platform_open(monome, m, dev);
 }
 
@@ -214,11 +322,12 @@ static int proto_chronome_close(monome_t *monome) {
 }
 
 static void proto_chronome_free(monome_t *monome) {
-	m_free(monome);
+    monome_chronome_t *mChr = (monome_chronome_t *) monome;
+	m_free(mChr);
 }
 
 monome_t *monome_protocol_new() {
-	monome_t *monome = m_calloc(1, sizeof(monome_t));
+	monome_t *monome = m_calloc(1, sizeof(monome_chronome_t));
 	
 	if( !monome )
 		return NULL;

@@ -26,16 +26,23 @@
 typedef enum {
 	/* input (from device) */
 	
-//	PROTO_CHRONOME_BUTTON_DOWN         = 0x01,
-//	PROTO_CHRONOME_BUTTON_UP           = 0x00,
-	PROTO_CHRONOME_PRESSURE            = 0x20,
+	PROTO_CHRONOME_PRESSURE            = 0x10,
 	
 	/* output (to device) */
 	
-	PROTO_CHRONOME_LED_ON              = 0x03,
-	PROTO_CHRONOME_LED_OFF             = 0x04,
-	PROTO_CHRONOME_LED_COLOR           = 0x05,	
-	PROTO_CHRONOME_LED_ALL_ON          = 0x06
+	PROTO_CHRONOME_LED_ON              = 0x02,
+	PROTO_CHRONOME_LED_OFF             = 0x03,
+	PROTO_CHRONOME_LED_COLOR           = 0x04,	
+	PROTO_CHRONOME_LED_ALL_ON          = 0x05,
+    PROTO_CHRONOME_LED_ROW             = 0x06,
+    PROTO_CHRONOME_LED_COL             = 0x07
+    
 } proto_chronome_message_t;
 
-int chronomePreviousValue[8][8];
+
+typedef struct monome_chronome monome_chronome_t;
+
+struct monome_chronome {
+	monome_t parent;
+	monome_mode_t mode;
+};
