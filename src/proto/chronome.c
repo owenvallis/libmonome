@@ -97,6 +97,8 @@ static int proto_chronome_led_col_row(monome_t *monome, proto_chronome_message_t
         fprintf(stderr, "mode post ROTSPEC value %d\n", mode);
     }
     
+    fprintf(stderr, "output value %d %d %d\n", mode, buf[1], address);
+
 	buf[0] = 0x80 | ((address & 0x7 ) << 4) | mode;
     
     return monome_write(monome, buf, sizeof(buf));
@@ -163,7 +165,8 @@ static int proto_chronome_led_map(monome_t *monome, uint_t x_off, uint_t y_off,
 	*((uint32_t *) &buf[4]) = *(((uint32_t *) data) + 1);
 #endif
     
-	ROTSPEC(monome).map_cb(monome, buf);
+    // this was causing an extra 90 of rotation
+	//ROTSPEC(monome).map_cb(monome, buf);
     
 	for( i = 0; i < 8; i++ )
 		ret += proto_chronome_led_col_row(monome, PROTO_CHRONOME_LED_ROW, i, &buf[i]);
