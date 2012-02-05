@@ -22,9 +22,10 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 #include <time.h>
+
+#include <stdio.h>
+
 
 #include <monome.h>
 #include "internal.h"
@@ -39,12 +40,8 @@
  */
 
 uint8_t button_current[8][8];
-uint8_t button_last[8][8];
-uint8_t button_state[8][8];
 
-clock_t button_debounce_count[8][8];
-
-clock_t kDebounceDelay;
+int threshold;
 
 static int monome_write(monome_t *monome, const uint8_t *buf, ssize_t bufsize) {
     if( monome_platform_write(monome, buf, bufsize) == bufsize )
@@ -70,14 +67,10 @@ static int proto_chronome_led_col_row(monome_t *monome, proto_chronome_message_t
                 buf[1] = REVERSE_BYTE(*data);
             else
                 buf[1] = *data;
-            
-            fprintf(stderr, "row %d %d %d\n", PROTO_CHRONOME_LED_ROW, buf[1], address);
-
                         
             break;
             
         case PROTO_CHRONOME_LED_COL:
-            fprintf(stderr, "col %d\n", PROTO_CHRONOME_LED_COL);
 
             if( ROTSPEC(monome).flags & COL_REVBITS )
                 buf[1] = REVERSE_BYTE(*data);
@@ -90,15 +83,9 @@ static int proto_chronome_led_col_row(monome_t *monome, proto_chronome_message_t
             return -1;
 	}
     
-    // check to see if this works
     if( ROTSPEC(monome).flags & ROW_COL_SWAP )
-    {
         mode = !(mode - PROTO_CHRONOME_LED_ROW) + PROTO_CHRONOME_LED_ROW;
-        fprintf(stderr, "mode post ROTSPEC value %d\n", mode);
-    }
     
-    fprintf(stderr, "output value %d %d %d\n", mode, buf[1], address);
-
 	buf[0] = 0x80 | ((address & 0x7 ) << 4) | mode;
     
     return monome_write(monome, buf, sizeof(buf));
@@ -226,60 +213,32 @@ static int proto_chronome_next_event(monome_t *monome, monome_event_t *e) {
             // lets also send out button Down/Up as we cross over zero
             // ****
             
+        
+            
             // set current button state
-            if(e->pressure.value > 0)
+            if(e->pressure.value >= threshold && button_current[e->pressure.x][e->pressure.y] != 1)
             {
+                //fprintf(stderr, "press Down\n");
                 button_current[e->pressure.x][e->pressure.y] = 1;
+                
+                e->event_type = MONOME_BUTTON_DOWN;                                             
+                e->grid.x = e->pressure.x;
+                e->grid.y = e->pressure.y;
+                
             }
-            else if (e->pressure.value == 0)
+            else if (e->pressure.value < threshold && button_current[e->pressure.x][e->pressure.y] != 0)
             {
+                //fprintf(stderr, "press Up\n");
                 button_current[e->pressure.x][e->pressure.y] = 0;  
+                
+                e->event_type = MONOME_BUTTON_UP;
+                e->grid.x = e->pressure.x;
+                e->grid.y = e->pressure.y; 
+                
             }
-            
-
-            // lets debounce
-            
-            // if the current physical button state is different from the last physical button state
-            if(button_current[e->pressure.x][e->pressure.y] != button_last[e->pressure.x][e->pressure.y]) 
-            { 
-                //fprintf(stderr, "reset the debouncing timer %d\n", (int)clock());
-                button_debounce_count[e->pressure.x][e->pressure.y] = clock();                                                                         
-            }
-            
-            
-            if((clock() - button_debounce_count[e->pressure.x][e->pressure.y]) > kDebounceDelay)     
-            {                                                                        
-                // queue up a button state change event
-                // and toggle the buttons debounce state.
-                if ((button_current[e->pressure.x][e->pressure.y] == 1) && (button_state[e->pressure.x][e->pressure.y] != 1))
-                {    
-                    //fprintf(stderr, "press Down\n");    
-                    button_state[e->pressure.x][e->pressure.y] = 1;
-                    
-                    e->event_type = MONOME_BUTTON_DOWN;                                             
-                    e->grid.x = e->pressure.x;
-                    e->grid.y = e->pressure.y;
-                }
-                else if ((button_current[e->pressure.x][e->pressure.y] == 0) && (button_state[e->pressure.x][e->pressure.y] != 0))
-                {
-                    //fprintf(stderr, "press Up\n");
-                    button_state[e->pressure.x][e->pressure.y] = 0;
-                    
-                    e->event_type = MONOME_BUTTON_UP;
-                    e->grid.x = e->pressure.x;
-                    e->grid.y = e->pressure.y; 
-                }
-            } 
-            
-            // ** print for bounce timer debugging    
-            //int diff = (int)(clock() - button_debounce_count[e->pressure.x][e->pressure.y]);
-            //fprintf(stderr, "debouncing timer difference %d\n", diff);
-
-            
-            // set the last button state equal to the current button state
-            button_last[e->pressure.x][e->pressure.y] = button_current[e->pressure.x][e->pressure.y];
             
 			return 1;
+             
 	}
 	
 	return 0;
@@ -287,24 +246,8 @@ static int proto_chronome_next_event(monome_t *monome, monome_event_t *e) {
 
 static void initializeDebounceVariables() {
     
-    for (int x = 0; x < 8; x++) {
-        for (int y = 0; y < 8; y++) {
-            
-            // button states
-            button_current[x][y] = 0;
-            button_last[x][y] = 0;
-            button_state[x][y] = 0;
-            
-            // clock values
-            button_debounce_count[x][y] = clock();
-        }
-    }
+    threshold = 200;
     
-    // Used in button debouncing and should be equal to 25 milliseconds
-    // this needs to be scaled by .001 for some reason?? 
-    kDebounceDelay = .001 * (.025 * CLOCKS_PER_SEC);  
-    
-    //fprintf(stderr, "kDebounceDelay %d\n", (int)kDebounceDelay);
 }
 
 static int proto_chronome_open(monome_t *monome, const char *dev,

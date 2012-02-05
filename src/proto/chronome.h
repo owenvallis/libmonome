@@ -39,10 +39,11 @@ typedef enum {
     
 } proto_chronome_message_t;
 
-
 typedef struct monome_chronome monome_chronome_t;
 
 struct monome_chronome {
 	monome_t parent;
 	monome_mode_t mode;
 };
+
+
