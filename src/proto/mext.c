@@ -1,10 +1,10 @@
 /**
  * Copyright (c) 2010 William Light <wrl@illest.net>
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,8 +15,8 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
-#include <stdio.h>
 
 #include <monome.h>
 #include "internal.h"
@@ -25,6 +25,7 @@
 
 #include "mext.h"
 
+#define ARRAY_LENGTH(x) (sizeof(x) / sizeof(*x))
 #define SELF_FROM(monome) mext_t *self = MEXT_T(monome)
 
 /**
@@ -133,11 +134,6 @@ static ssize_t mext_led_level_row_col(monome_t *monome, mext_cmd_t cmd, int rev,
  * led functions
  */
 
-static int mext_mode_noop(monome_t *monome, monome_mode_t mode) {
-	/* unimplemented */
-	return 0;
-}
-
 static int mext_led_set(monome_t *monome, uint_t x, uint_t y, uint_t on) {
 	mext_msg_t msg = {
 		.addr = SS_LED_GRID,
@@ -169,16 +165,10 @@ static int mext_led_map(monome_t *monome, uint_t x_off, uint_t y_off,
 		.cmd  = CMD_LED_MAP
 	};
 
-#ifdef __LP64__
-	*((uint64_t *) msg.payload.map.data) = *((uint64_t *) data);
-#else
-	*((uint32_t *) msg.payload.map.data) = *((uint32_t *) data);
-	*(((uint32_t *) msg.payload.map.data) + 1) = *(((uint32_t *) data) + 1);
-#endif
-
-	ROTATE_COORDS(monome, x_off, y_off);
+	memcpy(msg.payload.map.data, data, 8);
 	ROTSPEC(monome).map_cb(monome, msg.payload.map.data);
 
+	ROTATE_COORDS(monome, x_off, y_off);
 	msg.payload.map.offset.x = x_off;
 	msg.payload.map.offset.y = y_off;
 
@@ -539,7 +529,7 @@ static int mext_handler_tilt(mext_t *self, mext_msg_t *msg, monome_event_t *e) {
 
 static mext_handler_t subsystem_event_handlers[16] = {
 	[0 ... 15] = &mext_handler_noop,
-	
+
 	[SS_SYSTEM]   = mext_handler_system,
 	[SS_KEY_GRID] = mext_handler_key_grid,
 	[SS_ENCODER]  = mext_handler_encoder,
@@ -569,7 +559,13 @@ static int mext_next_event(monome_t *monome, monome_event_t *e) {
 
 static int mext_open(monome_t *monome, const char *dev, const char *serial,
                      const monome_devmap_t *m, va_list args) {
+	int i;
 	monome_event_t e;
+	mext_cmd_t startup_cmds[] = {
+		CMD_SYSTEM_QUERY,
+		CMD_SYSTEM_GET_ID,
+		CMD_SYSTEM_GET_GRIDSZ
+	};
 
 	if( monome_platform_open(monome, m, dev) )
 		return 1;
@@ -581,9 +577,11 @@ static int mext_open(monome_t *monome, const char *dev, const char *serial,
 	mext_simple_cmd(monome, CMD_SYSTEM_GET_ID);
 	mext_simple_cmd(monome, CMD_SYSTEM_GET_GRIDSZ);
 
-	do {
+	for( i = 0; i < ARRAY_LENGTH(startup_cmds); i++ ) {
+		mext_simple_cmd(monome, startup_cmds[i]);
 		monome_platform_wait_for_input(monome, 250);
-	} while( mext_next_event(monome, &e) );
+		mext_next_event(monome, &e);
+	}
 
 	return 0;
 }
@@ -611,8 +609,6 @@ monome_t *monome_protocol_new() {
 
 	monome->next_event = mext_next_event;
 
-	monome->mode = mext_mode_noop;
-	
 	monome->led = &mext_led_functions;
 	monome->led_level = &mext_led_level_functions;
 	monome->led_ring = &mext_led_ring_functions;

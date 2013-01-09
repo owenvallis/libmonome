@@ -24,6 +24,9 @@
 
 #include <monome.h>
 
+/* from waf */
+#include "config.h"
+
 typedef unsigned int uint_t;
 
 typedef enum {
@@ -136,8 +139,6 @@ struct monome {
 	void (*free)(monome_t *monome);
 
 	int  (*next_event)(monome_t *monome, monome_event_t *event);
-
-	int  (*mode)(monome_t *monome, monome_mode_t mode);
 
 	monome_led_functions_t *led;
 	monome_led_level_functions_t *led_level;

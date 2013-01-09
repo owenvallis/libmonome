@@ -126,6 +126,7 @@ static int osc_intensity_handler(const char *path, const char *types,
 	return monome_led_intensity(monome, intensity);
 }
 
+<<<<<<< HEAD
 // Owen added this for Chronome color support
 static int osc_led_color_handler(const char *path, const char *types,
                                  lo_arg **argv, int argc,
@@ -133,37 +134,43 @@ static int osc_led_color_handler(const char *path, const char *types,
     
     return 0;
 }
+=======
+#define ASPRINTF_OR_BAIL(...) do { \
+	if (asprintf(__VA_ARGS__) < 0) \
+		return;                    \
+	} while (0);
+>>>>>>> upstream/master
 
 static void register_osc_methods(char *prefix, monome_t *monome) {
 	lo_server_thread srv = state.server;
 	char *cmd_buf;
 
-	asprintf(&cmd_buf, "/%s/led", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/led", prefix);
 	lo_server_add_method(srv, cmd_buf, "iii", osc_led_handler, monome);
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/clear", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/clear", prefix);
 	lo_server_add_method(srv, cmd_buf, "", osc_led_all_handler, monome);
 	lo_server_add_method(srv, cmd_buf, "i", osc_led_all_handler, monome);
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/frame", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/frame", prefix);
 	lo_server_add_method(srv, cmd_buf, "iiiiiiii", osc_led_map_handler, monome);
 	lo_server_add_method(srv, cmd_buf, "iiiiiiiiii",
 						 osc_led_map_handler, monome);
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/led_row", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/led_row", prefix);
 	lo_server_add_method(srv, cmd_buf, "ii", osc_led_col_row_handler, monome);
 	lo_server_add_method(srv, cmd_buf, "iii", osc_led_col_row_handler, monome);
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/led_col", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/led_col", prefix);
 	lo_server_add_method(srv, cmd_buf, "ii", osc_led_col_row_handler, monome);
 	lo_server_add_method(srv, cmd_buf, "iii", osc_led_col_row_handler, monome);
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/intensity", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/intensity", prefix);
 	lo_server_add_method(srv, cmd_buf, "", osc_intensity_handler, monome);
 	lo_server_add_method(srv, cmd_buf, "i", osc_intensity_handler, monome);
 	m_free(cmd_buf);
@@ -178,34 +185,35 @@ static void unregister_osc_methods(char *prefix) {
 	lo_server_thread srv = state.server;
 	char *cmd_buf;
 
-	asprintf(&cmd_buf, "/%s/clear", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/clear", prefix);
 	lo_server_del_method(srv, cmd_buf, "");
 	lo_server_del_method(srv, cmd_buf, "i");
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/intensity", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/intensity", prefix);
 	lo_server_del_method(srv, cmd_buf, "");
 	lo_server_del_method(srv, cmd_buf, "i");
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/led", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/led", prefix);
 	lo_server_del_method(srv, cmd_buf, "iii");
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/led_row", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/led_row", prefix);
 	lo_server_del_method(srv, cmd_buf, "ii");
 	lo_server_del_method(srv, cmd_buf, "iii");
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/led_col", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/led_col", prefix);
 	lo_server_del_method(srv, cmd_buf, "ii");
 	lo_server_del_method(srv, cmd_buf, "iii");
 	m_free(cmd_buf);
 
-	asprintf(&cmd_buf, "/%s/frame", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/frame", prefix);
 	lo_server_del_method(srv, cmd_buf, "iiiiiiii");
 	lo_server_del_method(srv, cmd_buf, "iiiiiiiiii");
 	m_free(cmd_buf);
+<<<<<<< HEAD
     
 	// Owen added for Chronome color support
 	asprintf(&cmd_buf, "/%s/color", prefix);
@@ -217,27 +225,22 @@ static int sys_mode_handler(const char *path, const char *types,
 							 lo_arg **argv, int argc,
 							 lo_message data, void *user_data) {
 	monome_t *monome = user_data;
+=======
+>>>>>>> upstream/master
 
-	return monome_mode(monome, argv[0]->i);
-}
-
-static void register_sys_methods(monome_t *monome) {
-	lo_server_thread srv = state.server;
-
-	lo_server_add_method(srv, "/sys/mode", "i", sys_mode_handler, monome);
-
-	return;
 }
 
 static void monome_handle_press(const monome_event_t *e, void *data) {
 	char *cmd;
 	char *prefix = data;
 
-	asprintf(&cmd, "/%s/press", prefix);
+	ASPRINTF_OR_BAIL(&cmd, "/%s/press", prefix);
 	lo_send_from(state.outgoing, state.server, LO_TT_IMMEDIATE, cmd, "iii",
 				 e->grid.x, e->grid.y, e->event_type);
 	m_free(cmd);
 }
+
+#undef ASPRINTF_OR_BAIL
 
 static void usage(const char *app) {
 	printf(
@@ -425,12 +428,10 @@ int main(int argc, char *argv[]) {
 	monome_register_handler(state.monome, MONOME_BUTTON_UP,
 							monome_handle_press, state.lo_prefix);
 
-	register_sys_methods(state.monome);
 	register_osc_methods(state.lo_prefix, state.monome);
 
 	monome_set_rotation(state.monome, rotate);
 	monome_led_all(state.monome, 0);
-	monome_mode(state.monome, MONOME_MODE_NORMAL);
 
 	printf("monomeserial version %s, yay!\n\n", VERSION);
 	printf("initialized device %s at %s, which is %dx%d\n",
