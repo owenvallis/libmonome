@@ -49,5 +49,3 @@ struct monome_chronome {
     int threshold;
     uint8_t button_current[8][8];
 };
-
-
