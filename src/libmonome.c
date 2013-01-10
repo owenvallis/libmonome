@@ -254,13 +254,6 @@ int monome_led_intensity(monome_t *monome, uint_t brightness) {
 	return monome->led->intensity(monome, brightness);
 }
 
-// Owen added for Chronome color support
-int monome_led_color(monome_t *monome, uint_t x, uint_t y,
-					 uint_t red, uint_t green, uint_t blue) {
-	REQUIRE(led);
-	return monome->led->color(monome, x, y, red, green, blue);
-}
-
 int monome_led_level_set(monome_t *monome, uint_t x, uint_t y, uint_t level) {
 	REQUIRE(led_level);
 	return monome->led_level->set(monome, x, y, level);
@@ -287,6 +280,12 @@ int monome_led_level_col(monome_t *monome, uint_t x, uint_t y_off,
                          size_t count, const uint8_t *data) {
 	REQUIRE(led_level);
 	return monome->led_level->col(monome, x, y_off, count, data);
+}
+
+int monome_led_color(monome_t *monome, uint_t x, uint_t y,
+					 uint_t red, uint_t green, uint_t blue) {
+	REQUIRE(led_color);
+	return monome->led_color->set(monome, x, y, red, green, blue);
 }
 
 int monome_led_ring_set(monome_t *monome, uint_t ring, uint_t led,
