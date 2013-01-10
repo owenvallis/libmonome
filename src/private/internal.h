@@ -42,6 +42,7 @@ typedef struct monome_led_functions monome_led_functions_t;
 typedef struct monome_led_level_functions monome_led_level_functions_t;
 typedef struct monome_led_ring_functions monome_led_ring_functions_t;
 typedef struct monome_tilt_functions monome_tilt_functions_t;
+typedef struct monome_led_color_functions monome_led_color_functions_t;
 
 typedef void (*monome_coord_cb_t)(monome_t *, uint_t *x, uint_t *y);
 typedef void (*monome_map_cb_t)(monome_t *, uint8_t *data);
@@ -90,9 +91,6 @@ struct monome_led_functions {
 	int (*col)(monome_t *monome, uint_t x, uint_t y_off,
 	           size_t count, const uint8_t *data);
 	int (*intensity)(monome_t *monome, uint_t brightness);
-	
-	// Owen added this for Chronome color support 
-	int (*color)(monome_t *monome, uint_t x, uint_t y, uint_t r, uint_t g, uint_t b);
 };
 
 struct monome_led_level_functions {
@@ -104,6 +102,10 @@ struct monome_led_level_functions {
 	           size_t count, const uint8_t *data);
 	int (*col)(monome_t *monome, uint_t x, uint_t y_off,
 	           size_t count, const uint8_t *data);
+};
+
+struct monome_led_color_functions {
+	int (*set)(monome_t *monome, uint_t x, uint_t y, uint_t r, uint_t g, uint_t b);
 };
 
 struct monome_led_ring_functions {
@@ -142,6 +144,7 @@ struct monome {
 
 	monome_led_functions_t *led;
 	monome_led_level_functions_t *led_level;
+	monome_led_color_functions_t *led_color;
 	monome_led_ring_functions_t *led_ring;
 	monome_tilt_functions_t *tilt;
 };

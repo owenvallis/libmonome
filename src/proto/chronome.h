@@ -45,5 +45,3 @@ struct monome_chronome {
 	monome_t parent;
 	monome_mode_t mode;
 };
-
-
