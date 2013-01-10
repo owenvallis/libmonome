@@ -176,7 +176,7 @@ static void register_osc_methods(char *prefix, monome_t *monome) {
 	m_free(cmd_buf);
     
     // Owen added for Chronome color support
-	asprintf(&cmd_buf, "/%s/color", prefix);
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/color", prefix);
 	lo_server_add_method(srv, cmd_buf, "iiiii", osc_led_color_handler, monome);
 	m_free(cmd_buf);
 }
@@ -213,12 +213,13 @@ static void unregister_osc_methods(char *prefix) {
 	lo_server_del_method(srv, cmd_buf, "iiiiiiii");
 	lo_server_del_method(srv, cmd_buf, "iiiiiiiiii");
 	m_free(cmd_buf);
-<<<<<<< HEAD
     
-	// Owen added for Chronome color support
-	asprintf(&cmd_buf, "/%s/color", prefix);
+    // Owen added for Chronome color support
+	ASPRINTF_OR_BAIL(&cmd_buf, "/%s/color", prefix);
 	lo_server_del_method(srv, cmd_buf, "iiiii");
 	m_free(cmd_buf);
+    
+<<<<<<< HEAD
 }
 
 static int sys_mode_handler(const char *path, const char *types,
