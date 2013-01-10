@@ -38,11 +38,6 @@
 /**
  * private
  */
-
-uint8_t button_current[8][8];
-
-int threshold;
-
 static int monome_write(monome_t *monome, const uint8_t *buf, ssize_t bufsize) {
     if( monome_platform_write(monome, buf, bufsize) == bufsize )
 		return 0;
@@ -105,12 +100,6 @@ static int proto_chronome_led_all(monome_t *monome, uint_t status) {
 static int proto_chronome_intensity(monome_t *monome, uint_t brightness) {
     
     return 0;
-}
-
-// the chronome has no mode function as it doesn't use the MAX7219
-static int proto_chronome_mode(monome_t *monome, monome_mode_t mode) {
-    
-	return 0;
 }
 
 static int proto_chronome_led_set(monome_t *monome, uint_t x, uint_t y, uint_t on) {
@@ -211,25 +200,26 @@ static int proto_chronome_next_event(monome_t *monome, monome_event_t *e) {
            
             // ****
             // lets also send out button Down/Up as we cross over zero
-            // ****
+            // ****  
             
-        
+            //TODO: Maybe this could be better? Possibly a schmidt trigger 
+            //      would be cleaner?
             
             // set current button state
-            if(e->pressure.value >= threshold && button_current[e->pressure.x][e->pressure.y] != 1)
+            if(e->pressure.value >= MONOME_CHRONOME_T(monome)->threshold && MONOME_CHRONOME_T(monome)->button_current[e->pressure.x][e->pressure.y] != 1)
             {
                 //fprintf(stderr, "press Down\n");
-                button_current[e->pressure.x][e->pressure.y] = 1;
+                MONOME_CHRONOME_T(monome)->button_current[e->pressure.x][e->pressure.y] = 1;
                 
                 e->event_type = MONOME_BUTTON_DOWN;                                             
                 e->grid.x = e->pressure.x;
                 e->grid.y = e->pressure.y;
                 
             }
-            else if (e->pressure.value < threshold && button_current[e->pressure.x][e->pressure.y] != 0)
+            else if (e->pressure.value < MONOME_CHRONOME_T(monome)->threshold && MONOME_CHRONOME_T(monome)->button_current[e->pressure.x][e->pressure.y] != 0)
             {
                 //fprintf(stderr, "press Up\n");
-                button_current[e->pressure.x][e->pressure.y] = 0;  
+                MONOME_CHRONOME_T(monome)->button_current[e->pressure.x][e->pressure.y] = 0;  
                 
                 e->event_type = MONOME_BUTTON_UP;
                 e->grid.x = e->pressure.x;
@@ -244,12 +234,6 @@ static int proto_chronome_next_event(monome_t *monome, monome_event_t *e) {
 	return 0;
 }
 
-static void initializeDebounceVariables() {
-    
-    threshold = 200;
-    
-}
-
 static int proto_chronome_open(monome_t *monome, const char *dev,
 							   const char *serial, const monome_devmap_t *m,
 							   va_list args) {
@@ -257,8 +241,6 @@ static int proto_chronome_open(monome_t *monome, const char *dev,
 	monome->cols   = m->dimensions.cols;
 	monome->serial = serial;
 	monome->friendly = m->friendly;
-    
-    initializeDebounceVariables();
     
 	return monome_platform_open(monome, m, dev);
 }
@@ -284,11 +266,18 @@ monome_t *monome_protocol_new() {
 	
 	monome->next_event = proto_chronome_next_event;
 	
-	monome->mode       = proto_chronome_mode;
-	
 	monome->led        = &proto_chronome_led_functions;
 	monome->led_level  = NULL;
 	monome->led_ring   = NULL;
+    monome->tilt       = NULL;
+    
+    MONOME_CHRONOME_T(monome)->threshold = 200;
+    
+    for (int i; i < 8; i++) {
+        for (int j; j < 8; j++){
+            MONOME_CHRONOME_T(monome)->button_current[i][j] = 0;
+        }
+    }
 	
 	return monome;
 }

@@ -23,6 +23,8 @@
 #include "monome.h"
 #include "internal.h"
 
+#define MONOME_CHRONOME_T(x) ((monome_chronome_t *) x)
+
 typedef enum {
 	/* input (from device) */
 	
@@ -43,7 +45,9 @@ typedef struct monome_chronome monome_chronome_t;
 
 struct monome_chronome {
 	monome_t parent;
-	monome_mode_t mode;
+    
+    int threshold;
+    uint8_t button_current[8][8];
 };
 
 

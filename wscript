@@ -139,7 +139,7 @@ def configure(conf):
 		conf.env.append_unique("LINKFLAGS", ["-mmacosx-version-min=10.5"])
 
 	conf.env.append_unique("CFLAGS", ["-std=c99", "-Wall", "-Werror"])
-	conf.env.PROTOCOLS = ["40h", "series", "mext"]
+	conf.env.PROTOCOLS = ["40h", "series", "mext", "chronome"]
 
 	conf.define("LIBDIR", conf.env.LIBDIR)
 	conf.define("LIBSUFFIX", "." + conf.env.cshlib_PATTERN.rsplit(".", 1)[-1])

@@ -126,7 +126,7 @@ static int osc_intensity_handler(const char *path, const char *types,
 	return monome_led_intensity(monome, intensity);
 }
 
-<<<<<<< HEAD
+
 // Owen added this for Chronome color support
 static int osc_led_color_handler(const char *path, const char *types,
                                  lo_arg **argv, int argc,
@@ -134,12 +134,11 @@ static int osc_led_color_handler(const char *path, const char *types,
     
     return 0;
 }
-=======
+
 #define ASPRINTF_OR_BAIL(...) do { \
 	if (asprintf(__VA_ARGS__) < 0) \
 		return;                    \
 	} while (0);
->>>>>>> upstream/master
 
 static void register_osc_methods(char *prefix, monome_t *monome) {
 	lo_server_thread srv = state.server;
@@ -219,16 +218,6 @@ static void unregister_osc_methods(char *prefix) {
 	lo_server_del_method(srv, cmd_buf, "iiiii");
 	m_free(cmd_buf);
     
-<<<<<<< HEAD
-}
-
-static int sys_mode_handler(const char *path, const char *types,
-							 lo_arg **argv, int argc,
-							 lo_message data, void *user_data) {
-	monome_t *monome = user_data;
-=======
->>>>>>> upstream/master
-
 }
 
 static void monome_handle_press(const monome_event_t *e, void *data) {
