@@ -1,5 +1,6 @@
 /**
  * Copyright (c) 2010 William Light <wrl@illest.net>
+ * Copyright (c) 2013 Nedko Arnaudov <nedko@arnaudov.name>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -48,6 +49,8 @@ typedef void (*monome_coord_cb_t)(monome_t *, uint_t *x, uint_t *y);
 typedef void (*monome_map_cb_t)(monome_t *, uint8_t *data);
 typedef void (*monome_level_map_cb_t)(monome_t *, uint8_t *dest,
                                       const uint8_t *src);
+
+typedef monome_t *(*monome_proto_new_func_t)(void);
 
 struct monome_callback {
 	monome_event_callback_t cb;
@@ -122,12 +125,15 @@ struct monome_tilt_functions {
 };
 
 struct monome {
+#if !defined(EMBED_PROTOS)
 	/* handle for the loaded protocol module */
 	void *dl_handle;
+#endif
 
 	const char *serial;
 	const char *friendly;
 	const char *device;
+	const char *proto;
 	int rows, cols;
 
 	int fd;
