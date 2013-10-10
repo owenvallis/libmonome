@@ -151,7 +151,7 @@ def configure(conf):
 	if conf.env.CC[0] == "clang":
 		conf.env.append_unique("CFLAGS", ["-Wno-initializer-overrides"])
 
-	conf.env.PROTOCOLS = ["40h", "series", "mext"]
+	conf.env.PROTOCOLS = ["40h", "series", "mext", "chronome"]
 	if conf.env.LIB_LO:
 		conf.env.PROTOCOLS.append("osc")
 		conf.define("BUILD_OSC_PROTO", 1)
