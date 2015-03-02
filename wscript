@@ -2,6 +2,7 @@
 
 import time
 import sys
+import os
 
 top = "."
 out = "build"
@@ -9,7 +10,7 @@ out = "build"
 # change this stuff
 
 APPNAME = "libmonome"
-VERSION = "1.3"
+VERSION = "1.3.0"
 
 #
 # dep checking functions
@@ -148,7 +149,7 @@ def configure(conf):
 		conf.env.append_unique("CFLAGS", ["-mmacosx-version-min=10.5"])
 		conf.env.append_unique("LINKFLAGS", ["-mmacosx-version-min=10.5"])
 
-	if conf.env.CC[0] == "clang":
+	if os.path.basename(conf.env.CC[0]) == "clang":
 		conf.env.append_unique("CFLAGS", ["-Wno-initializer-overrides"])
 
 	conf.env.PROTOCOLS = ["40h", "series", "mext", "chronome"]
